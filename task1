@@ -1,0 +1,83 @@
+import re
+import argparse
+from collections import Counter
+from typing import Tuple
+
+
+class LogAnalyzer:
+    def __init__(self, file_path: str):
+        self.file_path = file_path
+        self.ip_counter = Counter()
+        self.status_counter = Counter()
+        self.endpoint_counter = Counter()
+
+        # Regex patterns
+        self.ip_pattern = re.compile(r'^(\S+)')
+        self.status_pattern = re.compile(r'"\s(\d{3})')
+        self.endpoint_pattern = re.compile(r'"[A-Z]+\s(.*?)\sHTTP')
+
+    def parse_line(self, line: str) -> Tuple[str, str, str]:
+        """Extract IP, status, and endpoint from a log line."""
+        ip = self.ip_pattern.search(line)
+        status = self.status_pattern.search(line)
+        endpoint = self.endpoint_pattern.search(line)
+
+        return (
+            ip.group(1) if ip else None,
+            status.group(1) if status else None,
+            endpoint.group(1) if endpoint else None
+        )
+
+    def process_file(self):
+        """Read and process the log file efficiently."""
+        try:
+            with open(self.file_path, 'r', encoding='utf-8') as file:
+                for line in file:
+                    ip, status, endpoint = self.parse_line(line)
+
+                    if ip:
+                        self.ip_counter[ip] += 1
+                    if status:
+                        self.status_counter[status] += 1
+                    if endpoint:
+                        self.endpoint_counter[endpoint] += 1
+
+        except FileNotFoundError:
+            print(f"[ERROR] File not found: {self.file_path}")
+            exit(1)
+        except Exception as e:
+            print(f"[ERROR] Unexpected error: {e}")
+            exit(1)
+
+    def display_results(self, top_n: int = 5):
+        """Print analysis results."""
+        print("\n📊 LOG ANALYSIS REPORT")
+        print("=" * 40)
+
+        print("\n🔝 Top IP Addresses:")
+        for ip, count in self.ip_counter.most_common(top_n):
+            print(f"{ip:<20} {count}")
+
+        print("\n📡 HTTP Status Codes:")
+        for code, count in self.status_counter.items():
+            print(f"{code:<10} {count}")
+
+        print("\n🌐 Top Endpoints:")
+        for ep, count in self.endpoint_counter.most_common(top_n):
+            print(f"{ep:<30} {count}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Log File Analyzer")
+    parser.add_argument("file", help="Path to log file")
+    parser.add_argument("--top", type=int, default=5, help="Top N results")
+
+    args = parser.parse_args()
+
+    analyzer = LogAnalyzer(args.file)
+    analyzer.process_file()
+    analyzer.display_results(args.top)
+
+
+if __name__ == "__main__":
+    main()
