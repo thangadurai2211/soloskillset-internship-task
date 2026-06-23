@@ -1,0 +1,66 @@
+import sqlite3
+import matplotlib.pyplot as plt
+from datetime import datetime
+
+# Connect DB
+conn = sqlite3.connect("expenses.db")
+cursor = conn.cursor()
+
+# Create table
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    amount REAL,
+    category TEXT,
+    date TEXT
+)
+''')
+conn.commit()
+
+# Add Expense
+def add_expense(amount, category):
+    date = datetime.now().strftime("%Y-%m-%d")
+    cursor.execute("INSERT INTO expenses (amount, category, date) VALUES (?, ?, ?)",
+                   (amount, category, date))
+    conn.commit()
+    print("Expense Added!")
+
+# View Expenses
+def view_expenses():
+    cursor.execute("SELECT * FROM expenses")
+    rows = cursor.fetchall()
+    for row in rows:
+        print(row)
+
+# Analytics (Category-wise)
+def show_analytics():
+    cursor.execute("SELECT category, SUM(amount) FROM expenses GROUP BY category")
+    data = cursor.fetchall()
+
+    categories = [row[0] for row in data]
+    amounts = [row[1] for row in data]
+
+    plt.bar(categories, amounts)
+    plt.title("Expense Analytics")
+    plt.xlabel("Category")
+    plt.ylabel("Amount")
+    plt.show()
+
+# Menu
+while True:
+    print("\n1.Add  2.View  3.Analytics  4.Exit")
+    choice = input("Enter choice: ")
+
+    if choice == "1":
+        amt = float(input("Amount: "))
+        cat = input("Category: ")
+        add_expense(amt, cat)
+
+    elif choice == "2":
+        view_expenses()
+
+    elif choice == "3":
+        show_analytics()
+
+    elif choice == "4":
+        break
